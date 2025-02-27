@@ -6,20 +6,30 @@ import com.kafein.common.model.LogMessage;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 
 class LogConsumerServiceTest {
 
     @Mock
     private RedisTemplate<String, Object> redisTemplate;
+
 
     @Mock
     private ValueOperations<String, Object> valueOperations;
@@ -30,12 +40,12 @@ class LogConsumerServiceTest {
     @Mock
     private ObjectMapper objectMapper;
 
-    @InjectMocks
     private LogConsumerService logConsumerService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        logConsumerService = new LogConsumerService(redisTemplate, taskExecutor,1);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     }
 
