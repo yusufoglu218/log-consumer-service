@@ -6,6 +6,7 @@ import com.kafein.common.model.LogMessage;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -21,20 +22,27 @@ public class LogConsumerService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    private int redisTtlTime;
+
     private final RedisTemplate<String, Object> redisTemplate;
 
     private final TaskExecutor taskExecutor;
 
-    public LogConsumerService(RedisTemplate<String, Object> redisTemplate, TaskExecutor taskExecutor) {
+    public LogConsumerService(RedisTemplate<String, Object> redisTemplate, TaskExecutor taskExecutor, @Value("${spring.redis.ttl}") int redisTtlTime) {
         this.redisTemplate = redisTemplate;
         this.taskExecutor = taskExecutor;
+        this.redisTtlTime = redisTtlTime;
     }
 
 
     /**
      * Listens to Kafka and processes messages asynchronously.
      */
-    @KafkaListener(topics = "log-topic", groupId = "log-consumer-group", concurrency = "5")
+    @KafkaListener(
+            topics = "${spring.kafka.topic.name}",
+            groupId = "${spring.kafka.consumer.group-id}",
+            concurrency = "${spring.kafka.consumer.concurrency}"
+    )
     public void consume(ConsumerRecord<String, String> consumerRecord) {
         taskExecutor.execute(() -> processRecord(consumerRecord));
     }
@@ -77,7 +85,7 @@ public class LogConsumerService {
      * @param logMessage The LogMessage object to be sent
      */
     public void sendToRedis(LogMessage logMessage) {
-        redisTemplate.opsForValue().set(logMessage.getEventId(), logMessage, 1, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(logMessage.getEventId(), logMessage, redisTtlTime, TimeUnit.MINUTES);
         logger.info("Message sent to Redis: {}", logMessage);
     }
 }
